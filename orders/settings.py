@@ -83,10 +83,8 @@ DATABASES = {
     # }
 
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        # 'ENGINE': 'django.db.backends.postgresql',
-        # 'NAME': 'diplom_db',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'diplom_db',
         'USER': 'diplom_user',
         'PASSWORD': 'password',
         'HOST': 'localhost',
