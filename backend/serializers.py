@@ -1,7 +1,7 @@
 # Верстальщик
 from rest_framework import serializers
 
-from backend.models import User, Category, Shop, ProductInfo, Product, ProductParameter, OrderItem, Order, Contact
+from backend.models import Category, Product, Shop, ProductInfo, Cart, CartItem, Order, Contact, User, ProductParameter
 
 
 class ContactSerializer(serializers.ModelSerializer):
@@ -19,7 +19,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'first_name', 'last_name', 'email', 'company', 'position', 'contacts')
+        fields = ('id', 'user_name', 'email', 'company', 'position', 'contacts')
         read_only_fields = ('id',)
 
 
@@ -65,7 +65,7 @@ class ProductInfoSerializer(serializers.ModelSerializer):
 
 class OrderItemSerializer(serializers.ModelSerializer):
     class Meta:
-        model = OrderItem
+        model = Order
         fields = ('id', 'product_info', 'quantity', 'order',)
         read_only_fields = ('id',)
         extra_kwargs = {

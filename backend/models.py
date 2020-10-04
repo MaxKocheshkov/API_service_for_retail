@@ -1,292 +1,231 @@
-from django.contrib.auth.base_user import BaseUserManager
-from django.contrib.auth.models import AbstractUser
+from decimal import Decimal
+
+from django.contrib.auth.base_user import BaseUserManager, AbstractBaseUser
+from django.contrib.auth.models import AbstractUser, PermissionsMixin, UserManager
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import models
+from django.db.models.signals import pre_save
+from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django_rest_passwordreset.tokens import get_token_generator
+from django.utils.text import slugify
+from transliterate import translit
 
-STATE_CHOICES = (
-    ('basket', 'Статус корзины'),
-    ('new', 'Новый'),
-    ('confirmed', 'Подтвержден'),
-    ('assembled', 'Собран'),
-    ('sent', 'Отправлен'),
-    ('delivered', 'Доставлен'),
-    ('canceled', 'Отменен'),
-)
-
-USER_TYPE_CHOICES = (
-    ('shop', 'Магазин'),
-    ('buyer', 'Покупатель'),
-
-)
+from django.conf import settings
 
 
-# Create your models here.
-
-
-class UserManager(BaseUserManager):
-    """
-    Миксин для управления пользователями
-    """
-    use_in_migrations = True
-
-    def _create_user(self, email, password, **extra_fields):
-        """
-        Create and save a user with the given username, email, and password.
-        """
-        if not email:
-            raise ValueError('The given email must be set')
-        email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
-        user.set_password(password)
-        user.save(using=self._db)
-        return user
-
-    def create_user(self, email, password=None, **extra_fields):
-        extra_fields.setdefault('is_staff', False)
-        extra_fields.setdefault('is_superuser', False)
-        return self._create_user(email, password, **extra_fields)
-
-    def create_superuser(self, email, password, **extra_fields):
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
-
-        if extra_fields.get('is_staff') is not True:
-            raise ValueError('Superuser must have is_staff=True.')
-        if extra_fields.get('is_superuser') is not True:
-            raise ValueError('Superuser must have is_superuser=True.')
-
-        return self._create_user(email, password, **extra_fields)
-
-
-class User(AbstractUser):
-    """
-    Стандартная модель пользователей
-    """
-    REQUIRED_FIELDS = []
-    objects = UserManager()
-    USERNAME_FIELD = 'email'
+class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(_('email address'), unique=True)
-    company = models.CharField(verbose_name='Компания', max_length=40, blank=True)
-    position = models.CharField(verbose_name='Должность', max_length=40, blank=True)
     username_validator = UnicodeUsernameValidator()
-    username = models.CharField(
-        _('username'),
-        max_length=150,
-        help_text=_('Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.'),
-        validators=[username_validator],
-        error_messages={
-            'unique': _("A user with that username already exists."),
-        },
-    )
-    is_active = models.BooleanField(
-        _('active'),
-        default=False,
-        help_text=_(
-            'Designates whether this user should be treated as active. '
-            'Unselect this instead of deleting accounts.'
-        ),
-    )
-    type = models.CharField(verbose_name='Тип пользователя', choices=USER_TYPE_CHOICES, max_length=5, default='buyer')
+    user_name = models.CharField(_('user name'), max_length=150,
+                                 help_text=_('Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.'),
+                                 validators=[username_validator],
+                                 error_messages={
+                                     'unique': _("A user with that username already exists."),
+                                 }, default='Введите имя',
+                                 )
+    company = models.CharField(_('company'), max_length=100, blank=True)
+    position = models.CharField(_('position'), max_length=100, blank=True)
+    date_joined = models.DateTimeField(_('date joined'), auto_now_add=True)
+    is_staff = True
 
-    def __str__(self):
-        return f'{self.first_name} {self.last_name}'
+    objects = UserManager()
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = []
 
     class Meta:
-        verbose_name = 'Пользователь'
-        verbose_name_plural = "Список пользователей"
-        ordering = ('email',)
+        verbose_name = _('user')
+        verbose_name_plural = _('users')
+
+    def __str__(self):
+        return f'{self.email} - {self.get_name()}'
+
+    def get_full_name(self):
+        return f'{self.first_name} {self.second_name} {self.last_name}'
+
+    get_full_name.short_description = "Full name of the person"
+
+    def get_name(self):
+        return f'{self.first_name} {self.last_name}'
+
+
+CONTACT_TYPE_CHOICES = (
+    ('Телефон', 'Телефон'),
+    ('Адрес', 'Адрес'),
+)
+
+
+class Contact(models.Model):  # ?
+    type = models.CharField(max_length=100, choices=CONTACT_TYPE_CHOICES, default='Телефон')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    value = models.CharField(max_length=200, null=True)
+
+    def __str__(self):
+        return f'{self.pk}'
+
+
+def pre_save_slug(sender, instance, *args, **kwargs):
+    if not instance.slug:
+        try:
+            instance.slug = slugify(translit(instance.name, reversed=True))
+        except:
+            instance.slug = slugify(instance.name)
+
+
+SHOP_STATE_CHOICES = (
+    ('on', 'on'),
+    ('off', 'off')
+)
 
 
 class Shop(models.Model):
-    name = models.CharField(max_length=50, verbose_name='Название')
-    url = models.URLField(verbose_name='Ссылка', null=True, blank=True)
-    user = models.OneToOneField(User, verbose_name='Пользователь',
-                                blank=True, null=True,
-                                on_delete=models.CASCADE)
-    state = models.BooleanField(verbose_name='статус получения заказов', default=True)
-
-    filename = models.FileField(upload_to='fixtures/')
-
-    class Meta:
-        verbose_name = 'Магазин'
-        verbose_name_plural = "Список магазинов"
-        ordering = ('-name',)
+    name = models.CharField(max_length=90)
+    url = models.CharField(max_length=120, blank=True, null=True)
+    logo = models.ImageField(blank=True)
+    state = models.CharField(max_length=3, choices=SHOP_STATE_CHOICES, default='off')
+    user_admins = models.ManyToManyField('User', related_name='controlled_shop')
+    filename = models.FileField(upload_to='data/', null=True)
 
     def __str__(self):
         return self.name
 
 
 class Category(models.Model):
-    name = models.CharField(max_length=40, verbose_name='Название')
-    shops = models.ManyToManyField(Shop, verbose_name='Магазины', related_name='categories', blank=True)
-
-    class Meta:
-        verbose_name = 'Категория'
-        verbose_name_plural = "Список категорий"
-        ordering = ('-name',)
+    name = models.CharField(max_length=30)
+    shops = models.ManyToManyField('Shop', related_name='categories')
+    slug = models.SlugField(blank=True)
 
     def __str__(self):
         return self.name
+
+    def get_absolute_url(self):
+        return reverse('category', kwargs={'slug': self.slug})
+
+
+pre_save.connect(pre_save_slug, sender=Category)
 
 
 class Product(models.Model):
-    name = models.CharField(max_length=80, verbose_name='Название')
-    category = models.ForeignKey(Category, verbose_name='Категория', related_name='products', blank=True,
-                                 on_delete=models.CASCADE)
-
-    class Meta:
-        verbose_name = 'Продукт'
-        verbose_name_plural = "Список продуктов"
-        ordering = ('-name',)
+    name = models.CharField(max_length=120)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    model = models.CharField(max_length=120, blank=True)
+    slug = models.SlugField(blank=True)
+    image = models.ImageField(blank=True)
+    description = models.TextField(null=True)
 
     def __str__(self):
         return self.name
 
+    def get_absolute_url(self):
+        return reverse('product', kwargs={'slug': self.slug})
+
+
+pre_save.connect(pre_save_slug, sender=Product)
+
 
 class ProductInfo(models.Model):
-    model = models.CharField(max_length=80, verbose_name='Модель', blank=True)
-    external_id = models.PositiveIntegerField(verbose_name='Внешний ИД')
-    product = models.ForeignKey(Product, verbose_name='Продукт', related_name='product_infos', blank=True,
-                                on_delete=models.CASCADE)
-    shop = models.ForeignKey(Shop, verbose_name='Магазин', related_name='product_infos', blank=True,
-                             on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField(verbose_name='Количество')
-    price = models.PositiveIntegerField(verbose_name='Цена')
-    price_rrc = models.PositiveIntegerField(verbose_name='Рекомендуемая розничная цена')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    shop = models.ForeignKey(Shop, on_delete=models.CASCADE)
+    quantity = models.PositiveSmallIntegerField()
+    price = models.DecimalField(max_digits=9, decimal_places=2, default=0.00)
 
-    class Meta:
-        verbose_name = 'Информация о продукте'
-        verbose_name_plural = "Информационный список о продуктах"
-        constraints = [
-            models.UniqueConstraint(fields=['product', 'shop', 'external_id'], name='unique_product_info'),
-        ]
+    def __str__(self):
+        return f'{self.product.name} - Product Info'
 
 
 class Parameter(models.Model):
-    name = models.CharField(max_length=40, verbose_name='Название')
-
-    class Meta:
-        verbose_name = 'Имя параметра'
-        verbose_name_plural = "Список имен параметров"
-        ordering = ('-name',)
+    name = models.CharField(max_length=120)
 
     def __str__(self):
         return self.name
 
 
 class ProductParameter(models.Model):
-    product_info = models.ForeignKey(ProductInfo, verbose_name='Информация о продукте',
-                                     related_name='product_parameters', blank=True,
-                                     on_delete=models.CASCADE)
-    parameter = models.ForeignKey(Parameter, verbose_name='Параметр', related_name='product_parameters', blank=True,
-                                  on_delete=models.CASCADE)
-    value = models.CharField(verbose_name='Значение', max_length=100)
-
-    class Meta:
-        verbose_name = 'Параметр'
-        verbose_name_plural = "Список параметров"
-        constraints = [
-            models.UniqueConstraint(fields=['product_info', 'parameter'], name='unique_product_parameter'),
-        ]
-
-
-class Contact(models.Model):
-    user = models.ForeignKey(User, verbose_name='Пользователь',
-                             related_name='contacts', blank=True,
-                             on_delete=models.CASCADE)
-
-    city = models.CharField(max_length=50, verbose_name='Город')
-    street = models.CharField(max_length=100, verbose_name='Улица')
-    house = models.CharField(max_length=15, verbose_name='Дом', blank=True)
-    structure = models.CharField(max_length=15, verbose_name='Корпус', blank=True)
-    building = models.CharField(max_length=15, verbose_name='Строение', blank=True)
-    apartment = models.CharField(max_length=15, verbose_name='Квартира', blank=True)
-    phone = models.CharField(max_length=20, verbose_name='Телефон')
-
-    class Meta:
-        verbose_name = 'Контакты пользователя'
-        verbose_name_plural = "Список контактов пользователя"
+    product_info = models.ForeignKey(ProductInfo, on_delete=models.CASCADE)
+    parameter = models.ForeignKey(Parameter, on_delete=models.CASCADE)
+    value = models.CharField(max_length=90)
 
     def __str__(self):
-        return f'{self.city} {self.street} {self.house}'
+        return f'{self.product_info.product.name} - {self.parameter}'
+
+
+def pre_save_cart_item_total(sender, instance, *args, **kwargs):
+    # Автоматически считают сумму стоимости предметов элемента корзины перед сохранением этого элемента.
+    instance.item_total = instance.productinfo.price * instance.quantity
+
+
+class CartItem(models.Model):
+    productinfo = models.ForeignKey(ProductInfo, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+    item_total = models.DecimalField(max_digits=9, decimal_places=2, default=0.00, blank=True)
+
+    def __str__(self):
+        return f'Cart item №{self.pk}'
+
+
+pre_save.connect(pre_save_cart_item_total, sender=CartItem)
+
+
+def pre_save_total(sender, instance, *args, **kwargs):
+    # Автоматически считают сумму стоимости предметов корзины перед сохранением корзины.
+    total = Decimal(0)
+    for item in instance.items.all():
+        total += item.item_total
+    instance.cart_total = total
+
+
+class Cart(models.Model):
+    items = models.ManyToManyField(CartItem)
+    cart_total = models.DecimalField(max_digits=9, decimal_places=2, default=0.00, blank=True)
+
+    def __str__(self):
+        return f'Cart №{self.pk}'
+
+    def add_to_cart(self, productinfo):
+        # Добавляет productInfo к корзине, задает ей кол-во == 1
+        cart = self
+        new_item, _ = CartItem.objects.get_or_create(productinfo=productinfo)
+
+        if new_item not in cart.items.all():
+            new_item.quantity = 1
+            new_item.save()
+            cart.items.add(new_item)
+            cart.save()
+
+    def remove_from_cart(self, cartitem):
+        cart = self
+        for cart_item in cart.items.all():
+            if cart_item == cartitem:
+                cart.items.remove(cart_item)
+                cart.save()
+
+
+pre_save.connect(pre_save_total, sender=Cart)
+
+ORDER_STATUS_CHOICES = (
+    ('Новый', 'Новый'),
+    ('Подтвержден', 'Подтвержден'),
+    ('Собран', 'Собран'),
+    ('Отправлен', 'Отправлен'),
+    ('Доставлен', 'Доставлен'),
+    ('Отменен', 'Отменен'),
+)
 
 
 class Order(models.Model):
     user = models.ForeignKey(User, verbose_name='Пользователь',
                              related_name='orders', blank=True,
-                             on_delete=models.CASCADE)
+                             on_delete=models.CASCADE, null=True)
+    user_name = models.CharField(max_length=100, null=True)
+    phone = models.CharField(default=None, max_length=20, verbose_name='Телефон')
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, null=True)
+    buying_type = models.CharField(max_length=40, choices=(('Самовывоз', 'Самовывоз'), ('Доставка', 'Доставка')),
+                                   default='Самовывоз')
+    address = models.CharField(max_length=500, default='Самовывоз', blank=True)
+    comment = models.TextField(blank=True)
     dt = models.DateTimeField(auto_now_add=True)
-    state = models.CharField(verbose_name='Статус', choices=STATE_CHOICES, max_length=15)
-    contact = models.ForeignKey(Contact, verbose_name='Контакт',
-                                blank=True, null=True,
-                                on_delete=models.CASCADE)
-
-    class Meta:
-        verbose_name = 'Заказ'
-        verbose_name_plural = "Список заказ"
-        ordering = ('-dt',)
+    status = models.CharField(max_length=100, choices=ORDER_STATUS_CHOICES, default='Новый')
 
     def __str__(self):
-        return str(self.dt)
-
-    # @property
-    # def sum(self):
-    #     return self.ordered_items.aggregate(total=Sum("quantity"))["total"]
-
-
-class OrderItem(models.Model):
-    order = models.ForeignKey(Order, verbose_name='Заказ', related_name='ordered_items', blank=True,
-                              on_delete=models.CASCADE)
-
-    product_info = models.ForeignKey(ProductInfo, verbose_name='Информация о продукте', related_name='ordered_items',
-                                     blank=True,
-                                     on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField(verbose_name='Количество')
-
-    class Meta:
-        verbose_name = 'Заказанная позиция'
-        verbose_name_plural = "Список заказанных позиций"
-        constraints = [
-            models.UniqueConstraint(fields=['order_id', 'product_info'], name='unique_order_item'),
-        ]
-
-
-class ConfirmEmailToken(models.Model):
-    class Meta:
-        verbose_name = 'Токен подтверждения Email'
-        verbose_name_plural = 'Токены подтверждения Email'
-
-    @staticmethod
-    def generate_key():
-        """ generates a pseudo random code using os.urandom and binascii.hexlify """
-        return get_token_generator().generate_token()
-
-    user = models.ForeignKey(
-        User,
-        related_name='confirm_email_tokens',
-        on_delete=models.CASCADE,
-        verbose_name=_("The User which is associated to this password reset token")
-    )
-
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name=_("When was this token generated")
-    )
-
-    # Key field, though it is not the primary key of the model
-    key = models.CharField(
-        _("Key"),
-        max_length=64,
-        db_index=True,
-        unique=True
-    )
-
-    def save(self, *args, **kwargs):
-        if not self.key:
-            self.key = self.generate_key()
-        return super(ConfirmEmailToken, self).save(*args, **kwargs)
-
-    def __str__(self):
-        return "Password reset token for user {user}".format(user=self.user)
+        return f'Заказ №{self.pk}'

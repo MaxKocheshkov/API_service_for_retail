@@ -1,0 +1,54 @@
+{% extends "./_base.html" %}
+{% block content %}
+<div class="container mt-3">
+  {% if order %}
+  <div class="main">
+    <h2>Спасибо за заказ!</h2>
+    <p><b>Номер Вашего заказа:</b> {{ order.pk }}</p>
+    <p>Наш оператор свяжется с Вами!</p>
+    <p>Статус заказов Вы можете посмотреть в <a href="{% url 'account' %}">профиле</a> в разделе "Заказы"</p>
+  </div>
+  <div class="order-info">
+    <ul>
+      <li><h3>Детали заказа:</h3>
+        {% for item in order.cart.items.all %}
+        <ul>
+          <li><h4>{{ item.productinfo.product.name }}:</h4>
+            <ul>
+              <li><b>Магазин:</b> {{ item.productinfo.shop.name }}</li>
+              <li><b>Цена:</b> {{ item.productinfo.price }} руб.</li>
+              <li><b>Количество:</b> {{ item.quantity }} шт.</li>
+              <li><b>Сумма:</b> {{ item.item_total }} руб.</li>
+            </ul>
+          </li>
+        </ul>
+        {% endfor %}
+        <br>
+        <ul>
+          <li><b>Общая сумма:</b> {{ order.cart.cart_total }} руб.</li>
+        </ul>
+      </li>
+      <li><h3>Детали получателя:</h3>
+        <ul>
+          <li><b>Фамилия:</b> {{ order.last_name }}</li>
+          <li><b>Имя:</b> {{ order.first_name }}</li>
+          {% if order.second_name %}
+          <li><b>Отчество:</b> {{ order.second_name }}</li>
+          {% endif %}
+          <li><b>Email:</b> {{ order.user.email }}</li>
+          <li><b>Телефон:</b> </li>
+        </ul>
+      </li>
+      <li><h3>Адрес:</h3>
+        <ul>
+          <li>{{ order.address }}</li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+  {% endif %}
+  <div class="buttons" style="display:inline-block; width:49.5%; text-align: left">
+      <a href="{% url 'main_page' %}">На главную</a>
+  </div>
+</div>
+{% endblock %}

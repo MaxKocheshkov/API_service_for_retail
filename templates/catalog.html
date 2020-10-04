@@ -1,0 +1,46 @@
+{% extends "./_base.html" %}
+{% load staticfiles %}
+
+{% block content %}
+<main role="main">
+  <div class="shop-header">
+    <div class="menu" style="width: 15%; display: inline-block"></div>
+    <div class="menu" style="display: inline-block">
+      <h1>Продукты:</h1>
+    </div>
+  </div>
+  <div class="menu" style="width: 15%; display: inline-block">
+    <div class="categories">
+      <p>Категории:</p>
+      <ul>
+        {% for category in categories %}
+        <li><a href="{% url 'catalog' %}?category={{ category.name }}">{{ category.name }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="shops">
+      <p>Магазины:</p>
+      <ul>
+        {% for shop in shops %}
+        <li><a href="{% url 'catalog' %}?shop={{ shop.name }}">{{ shop.name }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+
+  </div>
+
+  <div class="catalog" style="display: inline-block">
+
+    {% for product in products %}
+        <div class="product_container" style="display: inline-block; width: 200px">
+          <a href="{% url 'product' slug=product.slug %}"><h2>{{product.name}}</h2></a>
+          <img src="{% static product.image.url %}" width="120">
+          <p>Категория: {{product.category.name}}</p>
+        </div>
+    {% endfor %}
+  </div>
+
+</main>
+
+{% include "./includes/add_to_cart_script.html" %}
+{% endblock %}

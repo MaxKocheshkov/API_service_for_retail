@@ -1,26 +1,7 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
 
-from backend.models import User, Shop, Category, Product, ProductInfo, Parameter, ProductParameter, Order, OrderItem, \
-    Contact, ConfirmEmailToken
-
-
-@admin.register(User)
-class CustomUserAdmin(UserAdmin):
-    """
-    Панель управления пользователями
-    """
-    model = User
-
-    fieldsets = (
-        (None, {'fields': ('email', 'password', 'type')}),
-        ('Personal info', {'fields': ('first_name', 'last_name', 'company', 'position')}),
-        ('Permissions', {
-            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
-        }),
-        ('Important dates', {'fields': ('last_login', 'date_joined')}),
-    )
-    list_display = ('email', 'first_name', 'last_name', 'is_staff')
+from backend.models import Shop, Category, Product, ProductInfo, Parameter, ProductParameter, Order, Contact, User, \
+    CartItem, Cart
 
 
 @admin.register(Shop)
@@ -55,12 +36,11 @@ class ProductParameterAdmin(admin.ModelAdmin):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('pk', 'dt', 'user', 'status')
+    list_filter = ['dt', 'status']
 
-
-@admin.register(OrderItem)
-class OrderItemAdmin(admin.ModelAdmin):
-    pass
+    search_fields = ('pk', 'user__user_name', 'user__email', 'status')
+    # fields = ['pk','create_date','user','cat__total', 'status']
 
 
 @admin.register(Contact)
@@ -68,6 +48,16 @@ class ContactAdmin(admin.ModelAdmin):
     pass
 
 
-@admin.register(ConfirmEmailToken)
-class ConfirmEmailTokenAdmin(admin.ModelAdmin):
-    list_display = ('user', 'key', 'created_at',)
+@admin.register(User)
+class User(admin.ModelAdmin):
+    pass
+
+
+@admin.register(CartItem)
+class CartItemAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(Cart)
+class CartAdmin(admin.ModelAdmin):
+    pass

@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='shop',
             name='filename',
-            field=models.FileField(upload_to='fixtures/'),
+            field=models.FileField(upload_to='data/'),
         ),
     ]

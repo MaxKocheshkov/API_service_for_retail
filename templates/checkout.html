@@ -1,0 +1,48 @@
+{% extends "./_base.html" %}
+
+{% block content %}
+<div class="container mt-3">
+
+  <div class="row">
+    {% if cart.items.count > 0%}
+    <div id="my-cart" class="col-lg-8 col-md-9 col-sm-12 order-md-2 mb-4">
+      <h4 class="d-flex justify-content-between align-items-center mb-3">
+        <span class="text-muted">Предварительный заказ</span>
+        <span class="badge badge-secondary badge-pill cart-quantity">({{ cart.items.count }})</span>
+      </h4>
+      <ul class="list-group mb-3">
+        {% for item in cart.items.all %}
+          <li class="list-group-item d-flex justify-content-xl-between lh-condensed row product-item">
+            <div class="col">
+              <h3 class="my-0">{{ item.productinfo.product.name|title }}</h3>
+            </div>
+            <span class="text-muted mr-3 item-total">{{ item.quantity }} шт.</span>
+            <span class="text-muted mr-3 item-total">{{ item.item_total }} руб.</span>
+          </li>
+        {% endfor %}
+        <li class="list-group-item d-flex justify-content-center lh-condensed row product-item">
+          <h3 id="cart-total" class="text-center">Итоговая стоимость: {{ cart.cart_total }} руб.</h3>
+        </li>
+      </ul>
+    </div>
+    {% endif %}
+    <div id="cart-empty" class="col-lg-8 col-md-9 col-sm-12 order-md-2 mb-4 my-cart" style="{% if cart.items.count > 0%}display:none{% endif %}">
+      <li class="list-group-item d-flex justify-content-center lh-condensed row product-item">
+        <h5 class="text-center">Ваша корзина пуста!</h5>
+      </li>
+    </div>
+    <div class="col-lg-8 col-md-9 col-sm-12 order-md-2 mb-4 row" style="{% if cart.items.count == 0 %}display:none{% endif %}">
+      <div class="col">
+        <form action="{% url 'cart' %}" class="card p-2 col">
+          <button type="submit" class="btn btn-secondary">Изменить заказ</button>
+        </form>
+      </div>
+      <div class='col'>
+      <form action="{% url 'order_create' %}" class="card p-2 col">
+        <button type="submit" class="btn btn-secondary">Оформить заказ</button>
+      </form></div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

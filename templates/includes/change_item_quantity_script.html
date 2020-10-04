@@ -1,0 +1,23 @@
+<script>
+  window.addEventListener('load', e => {
+    quantity_forms = document.querySelectorAll('.quantity-form');
+
+    for (let form of quantity_forms) {
+      form.quantity.addEventListener('input', e => {
+        quantity = e.target.value
+        cartitempk = e.target.dataset.cartitempk
+
+        fetch(`{% url 'change_item_quantity' %}?quantity=${quantity}&cartitempk=${cartitempk}`, {
+          method: 'GET',
+        }).then((res) => {
+          return res.json();
+        }).then((data) => {
+          item_total = document.querySelector(`.item-total[data-cartitempk='${data.cartitempk}']`)
+          item_total.textContent = `${data.item_total} руб.`
+
+          document.querySelector('#cart-total').textContent = `Итоговая стоимость: ${data.cart_total} руб.`
+        })
+      });
+    }
+  });
+</script>

@@ -1,0 +1,36 @@
+{% extends "./_base.html" %}
+{% load staticfiles %}
+{% block title %}Empty Section{% endblock %}
+
+{% block content %}
+<main role="main">
+
+  <div class="container">
+    <!-- Example row of columns -->
+
+    <h1>{{products.first.category|title}}</h1>
+
+    <div class="row">
+      {% for product in products %}
+          <div class="col-md-4">
+            <h2><a href="{{ product.get_absolute_url }}">{{product.title|title}}</a></h2>
+
+            <a href="{{ product.get_absolute_url }}">
+
+              <img src="{% static product.image.url %}" width="180">
+
+            </a>
+            {% if request.user.is_authenticated %}
+              <form action="#">
+                <input type="submit" class="btn btn-secondary add-to-cart" data-slug="{{product.slug}}" value="Добавить в корзину »">
+              </form>
+            {% endif %}
+          </div>
+        {% endfor%}
+
+    </div> <!-- /container -->
+
+  </div>
+</main>
+{% include "./includes/add_to_cart_script.html" %}
+{% endblock %}

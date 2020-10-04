@@ -1,0 +1,72 @@
+{% extends "./_base.html" %}
+{% load staticfiles %}
+{% load default_value %}
+
+{% block content %}
+<div class="container mt-3">
+  <form action="#" method="POST">
+    {% csrf_token %}
+    <li class="" style="border: 1px solid">
+      <div class="col" style="display: inline-block; width:49%">
+        <h2 class="my-0">{{form.first_name.label}}</h2>
+        <p>{{form.first_name.help_text}}</p>
+      </div>
+      <div class="col" style="display: inline-block; width:49%">
+        {{ form.first_name|default_value:request.user.first_name}}
+      </div>
+    </li>
+    <li class="list-group-item d-flex justify-content-xl-between lh-condensed row product-item" style="border: 1px solid">
+      <div class="col" style="display: inline-block; width:49%">
+        <h2 class="my-0">{{form.last_name.label}}</h2>
+      </div>
+      <div class="col" style="display: inline-block; width:49%">
+        {{form.last_name|default_value:request.user.last_name}}
+      </div>
+    </li>
+    <li class="list-group-item d-flex justify-content-xl-between lh-condensed row product-item" style="border: 1px solid">
+      <div class="col" style="display: inline-block; width:49%">
+        <h2 class="my-0">{{form.second_name.label}}</h2>
+      </div>
+      <div class="col" style="display: inline-block; width:49%">
+        {{form.second_name|default_value:request.user.second_name}}
+      </div>
+    </li>
+    <li class="" style="border: 1px solid">
+      <div class="col" style="display: inline-block; width:49%">
+        <h2 class="my-0">{{form.phone.label}}</h2>
+      </div>
+      <div class="col" style="display: inline-block; width:49%">
+        {{form.phone}}
+      </div>
+    </li>
+    <li id="buying_type" style="border: 1px solid">
+      <div class="col" style="display: inline-block; width:49%">
+        <h2 class="my-0">{{form.buying_type.label}}</h2>
+      </div>
+      <div class="col" style="display: inline-block; width:49%">
+        {{form.buying_type}}
+      </div>
+    </li>
+    <li id="address" class="" style="display:none!important" style="border: 1px solid">
+      <div class="col" style="display: inline-block; width:49%">
+        <h2 class="my-0">{{form.address.label}}</h2>
+      </div>
+      <div class="col" style="display: inline-block; width:49%">
+        {{form.address}}
+      </div>
+    </li>
+    <li class="list-group-item d-flex justify-content-xl-between lh-condensed row product-item" style="border: 1px solid">
+      <div class="col" style="display: inline-block; width:49%">
+        <h2 class="my-0">{{form.comment.label}}</h2>
+      </div>
+      <div class="col" style="display: inline-block; width:49%">
+        {{form.comment}}
+      </div>
+    </li>
+    <br>
+    <button type="submit" class="btn btn-secondary col" >Оформить заказ</button>
+  </form>
+</div>
+
+{% include "./includes/hide_buying_type_script.html" %}
+{% endblock %}

@@ -1,0 +1,32 @@
+<script>
+  window.addEventListener('load', e => {
+    buttons = document.querySelectorAll('.remove-from-cart');
+
+    for (let btn of buttons) {
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+        cartitempk = e.target.dataset.cartitempk;
+
+        fetch(`{% url 'remove_from_cart' %}?cartitempk=${cartitempk}`, {
+          method: 'GET',
+        }).then((res) => {
+          return res.json();
+        }).then((data) => {
+          cart_item = document.querySelector(`.cart-item[data-cartitempk='${data.cartitempk}']`);
+          console.log(cart_item)
+          cart_item .parentNode.removeChild(cart_item );
+
+          cart_quantity = document.querySelector('.cart-quantity');
+          cart_quantity.textContent = Number(cart_quantity.textContent) - 1;
+
+          if (parseFloat(data.cart_total) == 0.00) {
+            document.querySelector('#my-cart').style.display = 'none';
+            document.querySelector('#cart-empty').style.display = 'block';
+          } else {
+            document.querySelector('#cart-total').textContent = `Итоговая стоимость: ${data.cart_total} руб.`;
+          }
+        })
+      });
+    }
+  });
+</script>
