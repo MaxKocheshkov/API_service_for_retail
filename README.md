@@ -17,7 +17,7 @@
 
 ### Установка проекта
 1. Клонируйте проект:
-   git clone https://github.com/MaxKocheshkov/API_service_for_retail.git
+   * git clone https://github.com/MaxKocheshkov/API_service_for_retail.git
 1. Установите зависимости, подготовьте базу данных:
     * pip install -r requirements.txt
     * python manage.py migrate
