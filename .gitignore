@@ -1,5 +1,7 @@
 venv/*
 db.sqlite3
+backend/migrations/*
+env/*
 
 # User-specific stuff
 .idea/**/workspace.xml

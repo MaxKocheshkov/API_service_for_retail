@@ -1,15 +1,91 @@
 from django.contrib.auth import authenticate, login
+from django.contrib.auth.password_validation import validate_password
 
-from django.http import JsonResponse, HttpResponseRedirect, Http404
+from django.http import JsonResponse, HttpResponseRedirect, Http404, HttpResponse
 from django.shortcuts import render
 from django.urls import reverse
+from django.utils.translation import activate
+from rest_framework.authtoken.models import Token
 
 from rest_framework.generics import get_object_or_404
-
+from rest_framework.views import APIView
+from transliterate.utils import _
 
 from backend.forms import RegistrationForm, ContactForm, OrderForm, LoginForm
-from backend.models import Category, Product, Shop, ProductInfo, Cart, CartItem, Order
+from backend.models import Category, Product, Shop, ProductInfo, Cart, CartItem, Order, User
+from backend.serializers import UserSerializer
 
+
+# class UserView(APIView):
+#
+#     template_name = "registration.html"
+#     """
+#         Класс для регистрации и удаления пользователя
+#     """
+#     # регистрация нового пользователя
+#     def post(self, request, *args, **kwargs):
+#         errors_dict = {}
+#         required_fields = ['password', 'password_repeat', 'email', 'username']
+#
+#         for field_name in required_fields:
+#             # Проверка наличия необходимых аргументов
+#             field = request.data.get(field_name)
+#             if not field:
+#                 errors_dict[field_name] = 'Необходимо заполнить.'
+#             else:
+#                 # Проверка пароля
+#                 if field_name == 'password':
+#                     try:
+#                         validate_password(request.data['password'])
+#                     except Exception as e:
+#                         errors_list = []
+#                         for error in e:
+#                             activate('ru')
+#                             errors_list.append(_(error))
+#                         errors_dict['password'] = errors_list
+#
+#                 # Проверка повтора пароля на совпадение с паролем
+#                 elif field_name == 'password_repeat':
+#                     if request.data['password']:
+#                         if not request.data['password'] == request.data['password_repeat']:
+#                             errors_dict['password_repeat'] = 'Пароли не совпадают.'
+#                     else:
+#                         errors_dict['password_repeat'] = 'Сначала придумайте пароль.'
+#
+#                 # Проверка уникальности логина
+#                 elif field_name == 'username':
+#                     if User.objects.filter(username=request.data['username']):
+#                         errors_dict['username'] = 'Пользоваетль с таким именем уже существует.'
+#
+#                 # Проверка уникальности email
+#                 elif field_name == 'email':
+#                     if User.objects.filter(email=request.data['email']):
+#                         errors_dict['email'] = 'Пользоваетль с таким email уже существует.'
+#
+#         # Если словарь с ошибками не пуст, то отправляем его ответ
+#         if errors_dict:
+#             return JsonResponse({'Status': False, 'Errors': errors_dict})
+#
+#         # Если ошибок нет, то соханяем пользователя, создаем для него токен авторизации
+#
+#         serializer = UserSerializer(data=request.data)
+#         if serializer.is_valid():
+#             # Сохранение пользователя
+#             user = serializer.save()
+#             user.is_email_sent = True
+#             user.set_password(request.data['password'])
+#             if 'firstname' in request.data:
+#                 user.first_name = request.data['firstname']
+#             if 'lastname' in request.data:
+#                 user.last_name = request.data['lastname']
+#             user.save()
+#
+#             # Создание токена
+#             Token.objects.get_or_create(user=user)
+#
+#             return JsonResponse({'Status': True})
+#         else:
+#             return JsonResponse({'Status': False, 'Errors': serializer.errors})
 
 def registration_view(request):
     form = RegistrationForm(request.POST or None)
@@ -20,7 +96,7 @@ def registration_view(request):
         email = form.cleaned_data['email']
         password = form.cleaned_data['password']
         new_user.set_password(password)
-        new_user.user_name = form.cleaned_data['user_name']
+        # new_user.user_name = form.cleaned_data['user_name']
         new_user.email = email
         new_user.company = form.cleaned_data['company']
         new_user.position = form.cleaned_data['position']

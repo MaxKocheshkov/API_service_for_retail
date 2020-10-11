@@ -23,11 +23,7 @@
     </li>
     <li><h3>Детали получателя:</h3>
       <ul>
-        <li><b>Фамилия:</b> {{ order.last_name }}</li>
-        <li><b>Имя:</b> {{ order.first_name }}</li>
-        {% if order.second_name %}
-        <li><b>Отчество:</b> {{ order.second_name }}</li>
-        {% endif %}
+        <li><b>Имя:</b> {{ order.user_name }}</li>
         <li><b>Email:</b> {{ order.user.email }}</li>
         <li><b>Телефон:</b> </li>
       </ul>

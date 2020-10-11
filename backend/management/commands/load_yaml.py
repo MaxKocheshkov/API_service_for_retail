@@ -23,7 +23,7 @@ class Command(BaseCommand):
         else:
             try:
                 shop, _ = Shop.objects.get_or_create(name=data['shop'])
-            except Shop.DoesNotExist as e:
+            except Shop.DoesNotExist:
                 return {'Status': 'Error', "Error": "Магазина не существует. Обратитесь к администратору сайта"}
 
             for category in data['categories']:

@@ -6,8 +6,14 @@ class ContactForm(forms.ModelForm):
     class Meta(object):
         model = Contact
         fields = (
-            'type',
-            'value'
+            'user',
+            'city',
+            'street',
+            'house',
+            'structure',
+            'building',
+            'apartment',
+            'phone',
         )
 
 
@@ -22,7 +28,6 @@ class RegistrationForm(forms.ModelForm):
     class Meta:
         model = User
         fields = (
-            'user_name',
             'email',
             'password',
             'password_check',
@@ -78,24 +83,23 @@ class OrderForm(forms.ModelForm):
     class Meta(object):
         model = Order
         fields = (
-            'user_name',
-            'phone',
-            'address',
-            'buying_type',
-            'comment'
+            'user',
+            'state',
+            'contact',
+            'shop',
+            'total_sum'
         )
 
         labels = {
-            'user_name': 'Ваше имя: ',
-            'phone': 'Мобильный номер: ',
-            'address': 'Адресс доставки:',
-            'buying_type': 'Тип доставки:',
-            'comment': 'Комментарий:',
+            'user': 'Ваше имя: ',
+            'state': 'Статус: ',
+            'contact': 'Контакт:',
+            'shop': 'Магазин:',
+            'total_sum': 'Cумма:',
         }
 
         help_texts = {
-            'address': '*Обязательно укажите адресс!',
-            'user_name': 'Имя по умолчанию взято из вашего профиля.',
+            'user': 'Имя по умолчанию взято из вашего профиля.',
         }
 
 

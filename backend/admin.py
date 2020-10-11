@@ -31,15 +31,15 @@ class ParameterAdmin(admin.ModelAdmin):
 
 @admin.register(ProductParameter)
 class ProductParameterAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('parameter', 'value')
 
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('pk', 'dt', 'user', 'status')
-    list_filter = ['dt', 'status']
+    list_display = ('pk', 'dt', 'user')
+    list_filter = ['dt']
 
-    search_fields = ('pk', 'user__user_name', 'user__email', 'status')
+    search_fields = ('pk', 'user__user_name', 'user__email')
     # fields = ['pk','create_date','user','cat__total', 'status']
 
 
