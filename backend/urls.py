@@ -1,25 +1,20 @@
 from django.urls import path
 from django_rest_passwordreset.views import reset_password_request_token, reset_password_confirm
 
-from backend import views
-
+from backend.views import UserView, LogIn, AccountInfo, ConfirmEmail, AccountContacts,\
+    CategoryViewSet, ProductView, PartnerView, PartnerInfo, ParthnerProducts, UserCart, OrderView
 
 app_name = 'backend'
-# urlpatterns = [
-#     path('partner/update', views., name='partner-update'),
-#     path('partner/state', PartnerState.as_view(), name='partner-state'),
-#     path('partner/orders', PartnerOrders.as_view(), name='partner-orders'),
-#     path('account/registration/', views.registration_view, name='user-register'),
-#     path('user/register/confirm', ConfirmAccount.as_view(), name='user-register-confirm'),
-#     path('user/details', AccountDetails.as_view(), name='user-details'),
-#     path('user/contact', ContactView.as_view(), name='user-contact'),
-#     path('user/login', views.login_view, name='user-login'),
-#     path('user/password_reset', reset_password_request_token, name='password-reset'),
-#     path('user/password_reset/confirm', reset_password_confirm, name='password-reset-confirm'),
-#     path('categories', CategoryView.as_view(), name='categories'),
-#     path('shops', ShopView.as_view(), name='shops'),
-#     path('products', ProductInfoView.as_view(), name='shops'),
-#     path('basket', BasketView.as_view(), name='basket'),
-#     path('order', views.order_create_view, name='order'),
-#
-# ]
+urlpatterns = [
+    path('registration/', UserView.as_view()),
+    path('login/', LogIn.as_view()),
+    path('info/', AccountInfo.as_view()),
+    path('contact/', AccountContacts.as_view()),
+    path('products/', ProductView.as_view()),
+    path('partner/', PartnerView.as_view()),
+    path('partner_info/', PartnerInfo.as_view()),
+    path('partner_products/', ParthnerProducts.as_view()),
+    path('cart/', UserCart.as_view()),
+    path('order/', OrderView.as_view()),
+    path('verify/', ConfirmEmail.as_view()),
+]

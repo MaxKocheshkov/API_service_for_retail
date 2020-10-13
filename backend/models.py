@@ -1,15 +1,12 @@
-from django.contrib.auth.base_user import BaseUserManager
-from django.contrib.auth.models import PermissionsMixin, AbstractUser
-from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import models
-from django.utils.translation import gettext_lazy as _
-from django.utils.text import slugify
-from transliterate import translit
-
-from django.conf import settings
+from django.contrib.auth.models import AbstractUser
+from django_rest_passwordreset.tokens import get_token_generator
+from django.db.models import signals
+from .tasks import send_email
+from django.urls import reverse
+import uuid
 
 STATE_CHOICES = (
-    ('basket', 'Статус корзины'),
     ('new', 'Новый'),
     ('confirmed', 'Подтвержден'),
     ('assembled', 'Собран'),
@@ -21,92 +18,90 @@ STATE_CHOICES = (
 USER_TYPE_CHOICES = (
     ('shop', 'Магазин'),
     ('buyer', 'Покупатель'),
-
 )
 
 
-class UserManager(BaseUserManager):
-    """
-    Миксин для управления пользователями
-    """
-    use_in_migrations = True
-
-    def _create_user(self, email, password, **extra_fields):
-        """
-        Create and save a user with the given username, email, and password.
-        """
-        if not email:
-            raise ValueError('The given email must be set')
-        email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
-        user.set_password(password)
-        user.save(using=self._db)
-        return user
-
-    def create_user(self, email, password=None, **extra_fields):
-        extra_fields.setdefault('is_staff', False)
-        extra_fields.setdefault('is_superuser', False)
-        return self._create_user(email, password, **extra_fields)
-
-    def create_superuser(self, email, password, **extra_fields):
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
-
-        if extra_fields.get('is_staff') is not True:
-            raise ValueError('Superuser must have is_staff=True.')
-        if extra_fields.get('is_superuser') is not True:
-            raise ValueError('Superuser must have is_superuser=True.')
-
-        return self._create_user(email, password, **extra_fields)
-
-
 class User(AbstractUser):
-    """
-    Стандартная модель пользователей
-    """
-    REQUIRED_FIELDS = []
-    objects = UserManager()
-    USERNAME_FIELD = 'email'
-    email = models.EmailField(_('email address'), unique=True)
-    company = models.CharField(verbose_name='Компания', max_length=40, blank=True)
-    position = models.CharField(verbose_name='Должность', max_length=40, blank=True)
-    username_validator = UnicodeUsernameValidator()
-    username = models.CharField(
-        _('username'),
-        max_length=150,
-        help_text=_('Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.'),
-        validators=[username_validator],
-        error_messages={
-            'unique': _("A user with that username already exists."),
-        }, blank=True, null=True
-    )
-    is_active = models.BooleanField(
-        _('active'),
-        default=False,
-        help_text=_(
-            'Designates whether this user should be treated as active. '
-            'Unselect this instead of deleting accounts.'
-        ),
-    )
-    type = models.CharField(verbose_name='Тип пользователя', choices=USER_TYPE_CHOICES, max_length=5, default='buyer')
-
-    def __str__(self):
-        return f'{self.first_name} {self.last_name}'
+    type = models.CharField(verbose_name='Тип пользователя',
+                            choices=USER_TYPE_CHOICES, max_length=5, default='buyer')
+    company = models.CharField(
+        verbose_name='Компания', max_length=40, blank=True)
+    position = models.CharField(
+        verbose_name='Должность', max_length=40, blank=True)
+    is_active = models.BooleanField(default=False)
+    is_email_sent = models.BooleanField(default=False)
+    verification_uuid = models.UUIDField(
+        'Уникальный код подтверждения', default=uuid.uuid4)
 
     class Meta:
         verbose_name = 'Пользователь'
-        verbose_name_plural = "Список пользователей"
-        ordering = ('email',)
+        verbose_name_plural = 'Пользователи'
+
+    def __str__(self):
+        return self.username
+
+
+def user_post_save(sender, instance, signal, *args, **kwargs):
+    if not instance.is_active and not instance.is_email_sent:
+        send_email.delay(
+            'Подтверждение почты',
+            'Спасибо за регистрцию на нашем сайте!\n\n'
+            'Перейдите по ссылке чтобы активировать аккаунт: '
+            f'http://localhost:3000/verify/{str(instance.verification_uuid)}',
+            [instance.email],
+        )
+
+
+signals.post_save.connect(user_post_save, sender=User)
+
+
+class ConformaionCode(models.Model):
+    @staticmethod
+    def generate_code():
+        return get_token_generator().generate_token()
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
+    code = models.CharField(max_length=100)
+
+    def set(self):
+        self.code = self.generate_code()
+
+    def __str__(self):
+        return f'Код подтверждения для ${self.user}'
+
+
+class Contact(models.Model):
+    user = models.ForeignKey(User, verbose_name='Пользователь',
+                             related_name='contacts', blank=True, null=True,
+                             on_delete=models.CASCADE)
+
+    city = models.CharField(max_length=50, verbose_name='Город', blank=True, null=True)
+    street = models.CharField(max_length=100, verbose_name='Улица', blank=True, null=True)
+    house = models.CharField(max_length=15, verbose_name='Дом', blank=True, null=True)
+    structure = models.CharField(
+        max_length=15, verbose_name='Корпус', blank=True, null=True)
+    building = models.CharField(
+        max_length=15, verbose_name='Строение', blank=True, null=True)
+    apartment = models.CharField(
+        max_length=15, verbose_name='Квартира', blank=True, null=True)
+    phone = models.CharField(max_length=20, verbose_name='Телефон', blank=True, null=True)
+
+    class Meta:
+        verbose_name = 'Контакты пользователя'
+        verbose_name_plural = "Список контактов пользователя"
+
+    def __str__(self):
+        return f'{self.city} {self.street} {self.house}'
 
 
 class Shop(models.Model):
-    name = models.CharField(max_length=50, verbose_name='Название')
+    name = models.CharField(max_length=50, verbose_name='Название', blank=True, null=True)
     url = models.URLField(verbose_name='Ссылка', null=True, blank=True)
     user = models.OneToOneField(User, verbose_name='Пользователь',
                                 blank=True, null=True,
                                 on_delete=models.CASCADE)
-    state = models.BooleanField(verbose_name='статус получения заказов', default=True)
-    filename = models.FileField(upload_to='data/', null=True)
+    state = models.BooleanField(
+        verbose_name='статус получения заказов', default=True)
 
     class Meta:
         verbose_name = 'Магазин'
@@ -121,7 +116,7 @@ class Category(models.Model):
     name = models.CharField(
         max_length=40, verbose_name='Название', default='Неизвестная категория')
     shops = models.ManyToManyField(
-        Shop, verbose_name='Магазины', related_name='categories', blank=True)
+        Shop, verbose_name='Магазины', related_name='categories', blank=True, null=True)
 
     class Meta:
         verbose_name = 'Категория'
@@ -136,6 +131,7 @@ class Product(models.Model):
     name = models.CharField(max_length=80, verbose_name='Название')
     category = models.ForeignKey(Category, verbose_name='Категория', related_name='products', blank=True, null=True,
                                  on_delete=models.CASCADE)
+    on_sale = models.BooleanField(verbose_name='На продаже', default=True)
 
     class Meta:
         verbose_name = 'Продукт'
@@ -197,31 +193,17 @@ class ProductParameter(models.Model):
         verbose_name_plural = "Список параметров"
 
 
-class Contact(models.Model):
-    user = models.ForeignKey(User, verbose_name='Пользователь',
-                             related_name='contacts', blank=True, null=True,
-                             on_delete=models.CASCADE)
-
-    city = models.CharField(max_length=50, verbose_name='Город', blank=True, null=True)
-    street = models.CharField(max_length=100, verbose_name='Улица', blank=True, null=True)
-    house = models.CharField(max_length=15, verbose_name='Дом', blank=True, null=True)
-    structure = models.CharField(
-        max_length=15, verbose_name='Корпус', blank=True, null=True)
-    building = models.CharField(
-        max_length=15, verbose_name='Строение', blank=True, null=True)
-    apartment = models.CharField(
-        max_length=15, verbose_name='Квартира', blank=True, null=True)
-    phone = models.CharField(max_length=20, verbose_name='Телефон', blank=True, null=True)
-
-    class Meta:
-        verbose_name = 'Контакты пользователя'
-        verbose_name_plural = "Список контактов пользователя"
-
-    def __str__(self):
-        return f'{self.city} {self.street} {self.house}'
-
-
 class Order(models.Model):
+    STATE_CHOICES = (
+        ('new', 'Новый'),
+        ('confirmed', 'Подтвержден'),
+        ('assembled', 'Собран'),
+        ('sent', 'Отправлен'),
+        ('delivered', 'Доставлен'),
+        ('canceled', 'Отменен'),
+    )
+    external_id = models.PositiveIntegerField(
+        verbose_name='Дополнительный ID', blank=True, null=True)
     user = models.ForeignKey(User, verbose_name='Пользователь',
                              related_name='orders', blank=True, null=True,
                              on_delete=models.SET_NULL)
@@ -234,7 +216,9 @@ class Order(models.Model):
     shop = models.ForeignKey(Shop, verbose_name='Магазин',
                              null=True, blank=True, on_delete=models.SET_NULL)
     items = models.ManyToManyField('OrderItem', related_name='ordered_items')
-    total_sum = models.PositiveIntegerField(verbose_name='Cумма', default=0)
+    total_summ = models.PositiveIntegerField(verbose_name='Cумма', default=0)
+    order_pdf = models.FilePathField(
+        verbose_name='Заказ в PDF', null=True, blank=True)
 
     class Meta:
         verbose_name = 'Заказ'
@@ -242,7 +226,11 @@ class Order(models.Model):
         ordering = ('-dt',)
 
     def __str__(self):
-        return str(self.dt)
+        return f'Заказ №{self.id}, магазин {self.shop.name}'
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.select_related('shop')
 
 
 class OrderItem(models.Model):
@@ -257,14 +245,11 @@ class OrderItem(models.Model):
     class Meta:
         verbose_name = 'Заказанная позиция'
         verbose_name_plural = "Список заказанных позиций"
-        constraints = [
-            models.UniqueConstraint(fields=['order_id', 'product_info'], name='unique_order_item'),
-        ]
 
 
 class Cart(models.Model):
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, verbose_name='Пользователь', blank=True, null=True)
+        User, on_delete=models.CASCADE, verbose_name='Пользователь')
     items = models.ManyToManyField(
         'CartItem', related_name='cart_items', blank=True)
 
@@ -280,7 +265,7 @@ class CartItem(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE,
                              related_name='cart_items', blank=True, null=True)
     product_info = models.ForeignKey(
-        ProductInfo, on_delete=models.CASCADE, verbose_name='Товар', blank=True, null=True)
+        ProductInfo, on_delete=models.CASCADE, verbose_name='Товар')
     quantity = models.IntegerField(verbose_name='Количество', default=0)
 
     def __str__(self):
