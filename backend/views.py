@@ -300,8 +300,6 @@ class PartnerView(APIView):
         Класс для регистрации и удаления магазина
     """
 
-    partner
-
     # Регистрация магазина
     def post(self, request, *args, **kwargs):
         # Проверка авторизован ли пользователь
@@ -522,7 +520,7 @@ class ParthnerProducts(APIView):
             return JsonResponse({'Status': False, 'Error': 'Продукта с таким ID не существует'}, status=403)
 
 
-class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
+class CategoryViewSet(viewsets.ViewSet):
     """
         Класс для получения списка категорий
     """
