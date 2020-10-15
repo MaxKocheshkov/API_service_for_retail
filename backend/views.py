@@ -299,6 +299,7 @@ class PartnerView(APIView):
     """
         Класс для регистрации и удаления магазина
     """
+    throttle_scope = 'partner'
 
     # Регистрация магазина
     def post(self, request, *args, **kwargs):

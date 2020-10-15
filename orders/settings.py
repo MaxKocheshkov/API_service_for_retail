@@ -162,7 +162,6 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_THROTTLE_RATES': {
         'partner': '1/day',
-        'category.validate': '1/day'
     }
 
 }
