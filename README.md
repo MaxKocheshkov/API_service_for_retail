@@ -24,4 +24,6 @@
     * python manage.py makemigrations
 1. Запуск сервера 
     * python manage.py runserver
-    
+
+## Postman collection
+    [Postman](https://documenter.getpostman.com/view/13098714/TVRq1kPn)

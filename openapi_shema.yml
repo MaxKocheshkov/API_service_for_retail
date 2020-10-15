@@ -1,0 +1,250 @@
+openapi: 3.0.2
+info:
+  title: ''
+  version: ''
+paths:
+  /api/info/:
+    get:
+      operationId: listAccountInfos
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+    put:
+      operationId: UpdateAccountInfo
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: ''
+  /api/contact/:
+    get:
+      operationId: listAccountContacts
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+    post:
+      operationId: CreateAccountContacts
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: ''
+    put:
+      operationId: UpdateAccountContacts
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: ''
+    delete:
+      operationId: DestroyAccountContacts
+      parameters: []
+      responses:
+        '204':
+          description: ''
+  /api/products/:
+    get:
+      operationId: listProducts
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+    post:
+      operationId: CreateProduct
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: ''
+  /api/cart/:
+    get:
+      operationId: listUserCarts
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+    post:
+      operationId: CreateUserCart
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: ''
+  /api/order/:
+    get:
+      operationId: listOrders
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+    post:
+      operationId: CreateOrder
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: ''
+    put:
+      operationId: UpdateOrder
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: ''
+  /api/categories/:
+    get:
+      operationId: listCategorys
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+  /api/categories/{id}/:
+    get:
+      operationId: retrieveCategory
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: "A unique integer value identifying this \u041A\u0430\u0442\u0435\
+          \u0433\u043E\u0440\u0438\u044F."
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: ''
+  /api/registration/:
+    post:
+      operationId: CreateUser
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: ''
+    delete:
+      operationId: DestroyUser
+      parameters: []
+      responses:
+        '204':
+          description: ''
+  /api/login/:
+    post:
+      operationId: CreateLogIn
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: ''
+  /api/partner/:
+    post:
+      operationId: CreatePartner
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: ''
+    delete:
+      operationId: DestroyPartner
+      parameters: []
+      responses:
+        '204':
+          description: ''
+  /api/partner_info/:
+    post:
+      operationId: CreatePartnerInfo
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: ''
+    put:
+      operationId: UpdatePartnerInfo
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: ''
+  /api/partner_products/:
+    post:
+      operationId: CreateParthnerProducts
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: ''
+    delete:
+      operationId: DestroyParthnerProducts
+      parameters: []
+      responses:
+        '204':
+          description: ''
+  /api/verify/:
+    post:
+      operationId: CreateConfirmEmail
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: ''

@@ -10,6 +10,7 @@ from requests import get
 from django.db.models import signals
 from django.shortcuts import get_object_or_404
 
+from .modules.create_pdf import Pdf
 from .modules.yaml_data_validator import is_valid as is_data_valid
 from reportlab.platypus import Paragraph
 from reportlab.lib.styles import ParagraphStyle
@@ -519,13 +520,12 @@ class ParthnerProducts(APIView):
             return JsonResponse({'Status': False, 'Error': 'Продукта с таким ID не существует'}, status=403)
 
 
-class CategoryViewSet(viewsets.ViewSet):
+class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     """
         Класс для получения списка категорий
     """
-
-    serializer_class = CategorySerializer
     queryset = Category.objects.all()
+    serializer_class = CategorySerializer
 
     # получение списка всех категорий
     def list(self, request):
@@ -755,6 +755,31 @@ class OrderView(APIView):
             shop.state = False
             shop.save()
 
+            # Если заказ новый, то нужно создать новый pdf
+            if is_created:
+
+                # Если до этого был заказ для другого магазина, то завершаем создание pdf и отправляем его на почту
+                if prev_order and file:
+                    # Завершаем и рисуем таблицу
+                    table_data.append(
+                        ['Итого', '', '', '', f'{prev_order.total_summ} руб.'])
+                    file.draw_table(table_data)
+
+                    # Сораняем файл и добавляем ссылку на него в модель
+                    file.save()
+                    prev_order.order_pdf = file.path
+                    prev_order.save()
+
+                    # Отправляем email с накладной магазину
+                    send_email.delay('У Вас новый заказ', 'Накладная во вложениях', [
+                        prev_order.shop.user.email], [file.path])
+                    # И очищаем данные таблицы для следующего заказа
+                    table_data = [['', 'Название', 'Цена', 'Кол-во', 'Сумма']]
+
+                # Создаем новый файл
+                file = Pdf(order)
+                prev_order = order
+
             # Добавляем запись о товаре в данные таблицы
             i += 1
             quantity = cart_item.quantity
@@ -773,6 +798,15 @@ class OrderView(APIView):
 
             # Удаляем товар из корзины
             cart_item.delete()
+
+        # завершаем создание pdf для последнего заказа и отправляем его на почту
+        table_data.append(['Итого', '', '', '', f'{order.total_summ} руб.'])
+        file.draw_table(table_data)
+        file.save()
+        order.order_pdf = file.path
+        order.save()
+        send_email.delay('У Вас новый заказ', 'Накладная во вложениях',
+                         [order.shop.user.email], [file.path])
 
         # Удаляем корзину
         cart.delete()

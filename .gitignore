@@ -1,7 +1,9 @@
-venv/*
+venv/
 db.sqlite3
-backend/migrations/*
-env/*
+backend/migrations/
+env/
+.idea/
+.pytest_cache/
 
 # User-specific stuff
 .idea/**/workspace.xml
