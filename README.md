@@ -26,4 +26,4 @@
     * python manage.py runserver
 
 ## Postman collection
-    [Postman](https://documenter.getpostman.com/view/13098714/TVRq1kPn)
+   [Postman](https://documenter.getpostman.com/view/13098714/TVRq1kPn)
