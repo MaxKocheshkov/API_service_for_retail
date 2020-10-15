@@ -300,6 +300,8 @@ class PartnerView(APIView):
         Класс для регистрации и удаления магазина
     """
 
+    partner
+
     # Регистрация магазина
     def post(self, request, *args, **kwargs):
         # Проверка авторизован ли пользователь
@@ -537,6 +539,11 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
         categories = self.queryset.filter(shops__id=pk)
         serializer = self.serializer_class(categories, many=True)
         return JsonResponse({'Status': True, 'Info': serializer.data})
+
+    # def get_throttles(self):
+    #     if self.action in ['delete', 'validate']:
+    #         self.throttle_scope = 'category.' + self.action
+    #     return super().get_throttles()
 
 
 class ProductView(APIView):

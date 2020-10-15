@@ -4,6 +4,7 @@ backend/migrations/
 env/
 .idea/
 .pytest_cache/
+source/
 
 # User-specific stuff
 .idea/**/workspace.xml
